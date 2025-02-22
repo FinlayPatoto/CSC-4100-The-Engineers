@@ -1,10 +1,9 @@
 /*
-This doesn't do much right now since I was lazy.
-Implemented some of the built in commands and basic stuff like that.
-Seem to work, kind of hard to tell without ls working though since cd hard (impossible I think) to see when command line is just wish> 
-Included comments about other important stuff that needs to be done.
+Added path command, implemented initialized path, let commands that aren't built-in be used
+So basic built-in commands and commands in /bin (or any other directory I guess since path command works) are implemented
+Need to basically do the parsing for finding specific command things like redirection and parallel commands (aka the hard part... yay)
+Included comments about other important stuff that needs to be done (mostly all of what is mentioned above).
 */
-
 
 #include <ctype.h>
 #include <stdio.h>
@@ -22,12 +21,6 @@ Included comments about other important stuff that needs to be done.
 // Global variables for path array and count.
 char **paths = NULL;
 int path_count = 0;
-
-// Structure to hold command after being trimmed and parsed.
-typedef struct {
-    char *cmd;      // Actual command
-    char *outfile;  // Output file for redirection if used
-} Command;
 
 // Free the memory allocated for the path directory array.
 void free_paths() {
@@ -103,7 +96,9 @@ int main(int argc, char *argv[]) {
     if (argc > 2) {
         print_error();
         exit(1);
-    } else if (argc == 2) {
+    } 
+    
+    else if (argc == 2) {
         input = fopen(argv[1], "r");
         if (!input) {
             print_error();
@@ -155,14 +150,17 @@ int main(int argc, char *argv[]) {
         if (strcmp(args[0], "exit") == 0) {
             if (argCount != 1) {
                 print_error();
-            } else {
+            } 
+            else {
                 free(command);
                 break;  // Exit the shell.
             }
-        } else if (strcmp(args[0], "cd") == 0) {
+        } 
+        else if (strcmp(args[0], "cd") == 0) {
             if (argCount != 2) {
                 print_error();
-            } else {
+            } 
+            else {
                 if (chdir(args[1]) != 0) {
                     print_error();
                 }
@@ -170,15 +168,20 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(args[0], "path") == 0) {
             if (argCount == 1) {
                 set_path(NULL, 0);
-            } else {
+            } 
+            else {
                 set_path(&args[1], argCount - 1);
             }
-        } else {
+        } 
+        
+        else {
             // External command: fork and execute.
-            pid_t pid = fork();
+            int pid = fork();
             if (pid < 0) {
                 print_error();
-            } else if (pid == 0) {
+            } 
+            
+            else if (pid == 0) {
                 // Child process.
                 char *executable = find_executable(args[0]);
                 if (executable == NULL) {
@@ -188,11 +191,20 @@ int main(int argc, char *argv[]) {
                 execv(executable, args);
                 print_error();
                 exit(1);
-            } else {
+            } 
+            
+            else {
                 // Parent process: wait for the child to finish.
                 wait(NULL);
             }
         }
+
+        // Need to check for & for parallel commands, need some kind of parsing
+
+        // Keep track of child pids for parallel commands
+
+        // Need something with the parsing the check for the > for redirection
+
         free(command);
     }
 
@@ -203,10 +215,3 @@ int main(int argc, char *argv[]) {
     }
     exit(0);
 }
-
-
-        // Other commands will use fork and do the command in the child
-
-        // Need to check for & for parallel commands, need some kind of parsing
-
-        // Keep track of child pids for parallel commands
