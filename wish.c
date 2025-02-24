@@ -1,4 +1,7 @@
 /*
+
+Katie Swinea, Finlay Patoto, John Donnell
+
 Added path command, implemented initialized path, let commands that aren't built-in be used
 So basic built-in commands and commands in /bin (or any other directory I guess since path command works) are implemented
 Implemented redirection. Wasn't as bad as I thought, find redirection, make sure only filename follows it, write to it.
