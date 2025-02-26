@@ -27,6 +27,14 @@ Included comments about other important stuff that needs to be done (mostly all 
 char **paths = NULL;
 int path_count = 0;
 
+char* line = NULL;
+size_t len = 0;
+bool redirect = false;
+char* outFile = NULL;
+
+char *tokens[MAX_TOKENS];  // Array to store split parts
+int count = 0;
+
 // Free the memory allocated for the path directory array
 void free_paths() {
 
@@ -137,6 +145,87 @@ int check_redirection(char* tokens[], bool* redirect) {
     return -1; // Use -1 incase symbol is located at 0
 }
 
+void process_command(char *command) {
+    char* args[MAX_TOKENS];
+    int redirectLocation = -1;
+    char *outFile = NULL;
+    bool redirect = false;
+
+    int argCount = tokenize_command(command, args);
+
+    if (argCount == 0) {
+        free(command);
+        return;
+    }
+
+    redirectLocation = check_redirection(args, &redirect);
+
+    if (redirectLocation != -1) {
+        if (argCount > redirectLocation + 2) {
+            print_error();
+            free(command);
+            return;
+        }
+        outFile = args[redirectLocation + 1];
+        args[redirectLocation] = NULL;
+    }
+
+    if (strcmp(args[0], "exit") == 0) {
+        if (argCount != 1) {
+            print_error();
+        } else {
+            free(command);
+            exit(0);
+        }
+    } else if (strcmp(args[0], "cd") == 0) {
+        if (argCount != 2) {
+            print_error();
+        } else {
+            if (chdir(args[1]) != 0) {
+                print_error();
+            }
+        }
+    } else if (strcmp(args[0], "path") == 0) {
+        if (argCount == 1) {
+            set_path(NULL, 0);
+        } else {
+            set_path(&args[1], argCount - 1);
+        }
+    } else {
+        int pid = fork();
+        if (pid < 0) {
+            print_error();
+        } else if (pid == 0) {
+            if (redirect) {
+                int fileID = creat(outFile, 0644);
+                if (fileID < 0) {
+                    print_error();
+                    exit(1);
+                }
+                dup2(fileID, STDOUT_FILENO);
+                dup2(fileID, STDERR_FILENO);
+                close(fileID);
+            }
+
+            char *executable = find_command(args[0]);
+            if (executable == NULL) {
+                print_error();
+                exit(1);
+            }
+
+            execv(executable, args);
+            print_error();
+            exit(1);
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
+        }
+    }
+
+    //free(command);
+}
+
+
 int main(int argc, char *argv[]) {
     FILE *input = stdin;
     int interactiveMode = 1; // Default to interactive mode
@@ -162,11 +251,6 @@ int main(int argc, char *argv[]) {
     // Initialize the default path (/bin)
     init_path();
 
-    char* line = NULL;
-    size_t len = 0;
-    bool redirect = false;
-    char* outFile = NULL;
-
     while (1) {
 
         if (interactiveMode) {
@@ -179,14 +263,6 @@ int main(int argc, char *argv[]) {
         if (read_bytes == -1) {  // EOF or error, stop the loop.
             break;
         }
-
-        // Check for parallel commands
-        char *token = strtok(read_bytes, "&");  // Get the first token
-        while (token != NULL) {
-            printf("\"%s\"\n", token);  // Print each part
-            token = strtok(NULL, "&");  // Get the next token
-        }
-        
         // Remove trailing newline if present
         if (line[read_bytes - 1] == '\n') {
             line[read_bytes - 1] = '\0';
@@ -204,118 +280,22 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        // Duplicate the line for tokenization (since strtok modifies the string)
-        char *command = strdup(trimmed);
+        count = 0;
 
-        if (!command) {
-            print_error();
-            continue;
+         // Splitting the string
+        char *token = strtok(trimmed, "&");
+        while (token != NULL && count < MAX_TOKENS) {
+            while (*token == ' ') token++;  // Trim leading spaces
+            tokens[count++] = strdup(token);
+            token = strtok(NULL, "&");
         }
 
-        char* args[MAX_TOKENS];
-
-        int argCount = tokenize_command(command, args);
-
-        // No memory leaks
-        if (argCount == 0) {
-            free(command);
-            continue;
+        // Loop through and print the stored tokens
+        for (int i = 0; i < count; i++) {
+            process_command(tokens[i]);
+            //printf(tokens[i]);
+            free(tokens[i]);  // Free strdup'd tokens after use
         }
-
-        int redirectLocation = check_redirection(args, &redirect);
-
-        if (redirectLocation != -1) {
-
-            if(argCount > redirectLocation + 2) {
-                print_error();
-                free(command);
-                continue;
-            }
-
-            outFile = args[redirectLocation + 1];
-            args[redirectLocation] = NULL;
-        }
-
-        // Handle built-in commands.
-        if (strcmp(args[0], "exit") == 0) {
-            if (argCount != 1) {
-                print_error();
-            } 
-
-            else {
-                free(command);
-                break;  // Exit the shell
-            }
-        } 
-
-        else if (strcmp(args[0], "cd") == 0) {
-            if (argCount != 2) {
-                print_error();
-            }
-
-            else {
-                // Uses the chdir function per instructions for cd command
-                if (chdir(args[1]) != 0) {
-                    print_error();
-                }
-            }
-        } 
-
-        else if (strcmp(args[0], "path") == 0) {
-            if (argCount == 1) {
-                set_path(NULL, 0);
-            }
-
-            else {
-                set_path(&args[1], argCount - 1); // Count is minus 1 since path is included in arguments but not a directory in the path
-            }
-        } 
-        
-        else {
-            // External command; fork and execute
-            int pid = fork();
-            if (pid < 0) {
-                print_error();
-            } 
-            
-            else if (pid == 0) {
-                if (redirect == true) {
-                    int fileID = creat(outFile, 0644);
-
-                    if (fileID < 0) {
-                        print_error();
-                        exit(1);
-                    }
-
-                    dup2(fileID, STDOUT_FILENO);
-                    dup2(fileID, STDERR_FILENO);
-                    close(fileID);
-                }
-
-                // Child process to execute external commands
-                char *executable = find_command(args[0]);
-
-                if (executable == NULL) {
-                    print_error();
-                    exit(1);
-                }
-
-                execv(executable, args);
-                print_error();
-                exit(1);
-            } 
-            
-            else {
-                // Parent process waits for the child to finish.
-                wait(NULL);
-            }
-        }
-
-        // Need to check for & for parallel commands, need some kind of parsing
-
-        // Keep track of child pids for parallel commands
-
-        free(command);
     }
 
     free(line);
