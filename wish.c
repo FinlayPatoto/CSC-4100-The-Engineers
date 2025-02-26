@@ -175,10 +175,18 @@ int main(int argc, char *argv[]) {
         }
 
         ssize_t read_bytes = getline(&line, &len, input); // Gets input using getline per assignment instructions
+        
         if (read_bytes == -1) {  // EOF or error, stop the loop.
             break;
         }
 
+        // Check for parallel commands
+        char *token = strtok(read_bytes, "&");  // Get the first token
+        while (token != NULL) {
+            printf("\"%s\"\n", token);  // Print each part
+            token = strtok(NULL, "&");  // Get the next token
+        }
+        
         // Remove trailing newline if present
         if (line[read_bytes - 1] == '\n') {
             line[read_bytes - 1] = '\0';
@@ -186,7 +194,7 @@ int main(int argc, char *argv[]) {
 
         char *trimmed = line;
 
-        // Trime whitespace
+        // Trim whitespace
         while (*trimmed && isspace(*trimmed)) {
             trimmed++;
         }
