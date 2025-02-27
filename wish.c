@@ -23,7 +23,7 @@ Included comments about other important stuff that needs to be done (mostly all 
 #define MAX_TOKENS 100
 #define ERROR_MESSAGE "An error has occurred\n"
 
-// Variable for the path and amount of directories in path
+// Variable for the path and amount of directories in the path
 char **paths = NULL;
 int path_count = 0;
 
