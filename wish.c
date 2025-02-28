@@ -1,12 +1,13 @@
 /*
 
-Katie Swinea, Finlay Patoto, John Donnell
+Team Name: The Engineers
+Team Members: Katie Swinea, Finlay Patoto, John Donnell
 
-Added path command, implemented initialized path, let commands that aren't built-in be used
-So basic built-in commands and commands in /bin (or any other directory I guess since path command works) are implemented
-Implemented redirection. Wasn't as bad as I thought, find redirection, make sure only filename follows it, write to it.
-Need to basically do the parsing for finding specific command things like parallel commands (aka the hard part... yay)
-Included comments about other important stuff that needs to be done (mostly all of what is mentioned above).
+Description: Create wish shell to simulate unix shell functionality. 
+Includes built-in commands and can access external commands if executable in path. 
+Includes interactive mode and batch mode. Includes redirection of command output to file.
+Inlcudes parallel commands to be run with & symbol in between commands.
+
 */
 
 #include <ctype.h>
@@ -132,7 +133,7 @@ int check_redirection(char* tokens[], bool* redirect) {
 
     while(tokens[i] != NULL) {
 
-        if(strcmp(tokens[i], ">") == 0) {
+        if((strcmp(tokens[i], ">") == 0) && (i != 0)) { // If redirection symbol at 0, no command to write output to file
             *redirect = true;
             return i;
         }
@@ -142,7 +143,7 @@ int check_redirection(char* tokens[], bool* redirect) {
 
     *redirect = false;
 
-    return -1; // Use -1 incase symbol is located at 0
+    return -1; // If symbl is not in command, -1 since 0 is a valid array element
 }
 
 void process_command(char *command) {
@@ -222,7 +223,7 @@ void process_command(char *command) {
         }
     }
 
-    //free(command);
+    free(command);
 }
 
 
@@ -290,17 +291,43 @@ int main(int argc, char *argv[]) {
             token = strtok(NULL, "&");
         }
 
-        // Loop through and print the stored tokens
-        for (int i = 0; i < count; i++) {
-            process_command(tokens[i]);
-            //printf(tokens[i]);
-            free(tokens[i]);  // Free strdup'd tokens after use
+
+        // If no parallel commands, run singular command 
+        if (count == 1) {
+            process_command(tokens[0]);
+        }
+
+        // Otherwise fork each comand for the parallel commands
+        else {
+
+            pid_t pids[MAX_TOKENS]; // Keep track of all the children running
+
+            // Fork each command and run command in child
+            for (int i = 0; i < count; i++) {
+                pids[i] = fork();
+                
+                if (pids[i] < 0) {
+                    print_error();
+                }
+
+                else if (pids[i] == 0) {
+                    process_command(tokens[i]);
+                    exit(0);
+                }
+            }
+
+            // Waits for all children to end
+            for (int i = 0; i < count; i++) {
+                waitpid(pids[i], NULL, 0);
+            }
         }
     }
 
+    // No memory leaks
     free(line);
     free_paths();
 
+    // Close batch file opened in read mode
     if (!interactiveMode) {
         fclose(input);
     }
