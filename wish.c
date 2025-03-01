@@ -174,7 +174,8 @@ void process_command(char *command) {
     if (strcmp(args[0], "exit") == 0) {
         if (argCount != 1) {
             print_error();
-        } else {
+        } 
+        else {
             free(command);
             exit(0);
         }
@@ -186,17 +187,21 @@ void process_command(char *command) {
                 print_error();
             }
         }
-    } else if (strcmp(args[0], "path") == 0) {
+    } 
+    else if (strcmp(args[0], "path") == 0) {
         if (argCount == 1) {
             set_path(NULL, 0);
-        } else {
+        } 
+        else {
             set_path(&args[1], argCount - 1);
         }
-    } else {
+    } 
+    else {
         int pid = fork();
         if (pid < 0) {
             print_error();
-        } else if (pid == 0) {
+        } 
+        else if (pid == 0) {
             if (redirect) {
                 int fileID = creat(outFile, 0644);
                 if (fileID < 0) {
@@ -216,14 +221,16 @@ void process_command(char *command) {
 
             execv(executable, args);
             print_error();
+            free(executable); // Frees allocated memory of executable in case of execv error
             exit(1);
-        } else {
+        } 
+        else {
             int status;
             waitpid(pid, &status, 0);
         }
     }
 
-    free(command);
+    free(command); // Frees allocate memory for command, will free each tokens element
 }
 
 
