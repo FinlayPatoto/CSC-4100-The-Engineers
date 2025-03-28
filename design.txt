@@ -113,11 +113,24 @@ implemented with a for loop though).
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
 
+lock_release() would have to transfer lock ownership, 
+then would need to recalculate Priority assuming priority donation was used.
+The lock’s wait queue is then checked, and the highest-priority thread is selected and unblocked. 
+This thread is then scheduled to run and gets the lock, making sure that priority-based scheduling 
+is maintained.
+
 ---- SYNCHRONIZATION ----
 
 >> B6: Describe a potential race in thread_set_priority() and explain
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
+
+A race condition in thread_set_priority() could occur if a thread updates its priority while priority donation 
+is happening, leading to an error. One possible approach would disable interrupts during priority updating. 
+If a thread lowers its priority, it flags the CPU if a higher-priority thread is ready. You shouldn't us a lock 
+because it could lead to potential deadlocks and priority inversion, so we think at this time interrupt disabling 
+is the best option possible. 
+
 
 ---- RATIONALE ----
 
