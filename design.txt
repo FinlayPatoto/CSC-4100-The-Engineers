@@ -30,26 +30,52 @@ they will be added and cited here appropriately.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+We have not finialized these changes yet to get a working alarm. At this point
+in time, we have changed the threat struct to include wakeup times. We have 
+also added a queue to hold all the threads that are waiting. We also used an 
+enumeration for the interrupt level and the current level for that thread. 
+These are done to hold the wait time to run in the background instead of the
+busy wait and for disabling interrupts.
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+timer_sleep() still gets the interrupt level and starts the timer_ticks,
+but it then goes on to use the enum for the interrupt levels and store the
+wake up time in the thread structure. It then blocks the thread and disables
+the interrupt. The interrupt handler gets the thread in the waiting queue,
+if it is not time to wake up yet, nothing happens. Otherwise, it removes the
+thread from the list and unblocks it.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+
+It makes efforts to quickly get thread information by getting the information
+at initilization. It also doesn't waste time if it is not ready to be removed
+by using an if statement to break out of the function.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+The waiting queue should be achieving this.
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+By turning off the interrupts.
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+Currently, this is the first iteration. It could easily become better.
+In theory, this design should meet the requirments which is why we are
+pursuing it.
 
 			 PRIORITY SCHEDULING
 			 ===================
