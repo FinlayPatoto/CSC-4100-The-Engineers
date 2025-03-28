@@ -31,7 +31,7 @@ they will be added and cited here appropriately.
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
 We have not finialized these changes yet to get a working alarm. At this point
-in time, we have changed the threat struct to include wakeup times. We have 
+in time, we have changed the thread struct to include wakeup times. We have 
 also added a queue to hold all the threads that are waiting. We also used an 
 enumeration for the interrupt level and the current level for that thread. 
 These are done to hold the wait time to run in the background instead of the
@@ -54,8 +54,8 @@ thread from the list and unblocks it.
 
 To minimize the time in the timer interrupt handler, we will keep the logic
 as simple and efficient as possible. One example would be to quickly get thread 
-information at initialization to shorten the delay. Using an if statement to break out of the 
-function also doesn't waste time if it is not ready to be removed.
+information at initialization to shorten the delay. Using an if statement to break 
+out of the function also doesn't waste time if it is not ready to be removed.
 
 ---- SYNCHRONIZATION ----
 
@@ -123,9 +123,9 @@ implemented with a for loop though).
 
 lock_release() would have to transfer lock ownership, 
 then would need to recalculate Priority, assuming priority donation was used.
-The lock’s wait queue is then checked, and the highest-priority thread is selected and unblocked. 
-This thread is then scheduled to run and gets the lock, making sure that priority-based scheduling 
-is maintained.
+The lock’s wait queue is then checked, and the highest-priority thread is 
+selected and unblocked. This thread is then scheduled to run and gets the 
+lock, making sure that priority-based scheduling is maintained.
 
 ---- SYNCHRONIZATION ----
 
@@ -133,11 +133,12 @@ is maintained.
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
-A race condition in thread_set_priority() could occur if a thread updates its priority while priority donation 
-is happening, leading to an error. One possible approach would disable interrupts during priority updating. 
-If a thread lowers its priority, it flags the CPU if a higher-priority thread is ready. You shouldn't us a lock 
-because it could lead to potential deadlocks and priority inversion, so we think at this time interrupt disabling 
-is the best option possible. 
+A race condition in thread_set_priority() could occur if a thread updates its 
+priority while priority donation is happening, leading to an error. One possible 
+approach would disable interrupts during priority updating. If a thread lowers 
+its priority, it flags the CPU if a higher-priority thread is ready. You shouldn't 
+use a lock because it could lead to potential deadlocks and priority inversion, 
+so we think at this time interrupt disabling is the best option possible. 
 
 
 ---- RATIONALE ----
@@ -145,9 +146,10 @@ is the best option possible.
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
-We chose this design because it should effectively handle priority inversion with the ability to have
-dynamic priority donation. Using an ordered waiters list helps keep the implementation on the simple
-side and ensures correct thread scheduling, and recursive donation supports nested locks.
+We chose this design because it should effectively handle priority inversion with 
+the ability to have dynamic priority donation. Using an ordered waiters list helps 
+keep the implementation on the simple side and ensures correct thread scheduling, 
+and recursive donation supports nested locks.
 
 			  ADVANCED SCHEDULER (Extra Credit)
 			  =================================
