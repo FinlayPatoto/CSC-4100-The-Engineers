@@ -86,6 +86,10 @@ pursuing it.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+We have not gotten to this part of the project yet for development.
+It is assumed at least the thread structure needs to be changed and
+a priority queue will need to be added.
+
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
@@ -95,8 +99,16 @@ pursuing it.
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
 
+Probably an if statement when waking it up or some kind of way to
+organize the queue were highest priority are in there first.
+
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
+
+This will happen if another function or variable is needed for other's
+to use it. Cannot tell specific events. Nested donation makes me think 
+the logic needs to be similar to nested for loops in executions (not 
+implemented with a for loop though).
 
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
