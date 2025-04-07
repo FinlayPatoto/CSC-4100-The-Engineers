@@ -30,47 +30,86 @@ they will be added and cited here appropriately.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-We have not finialized these changes yet to get a working alarm. At this point
-in time, we have changed the thread struct to include wakeup times. We have 
-also added a queue to hold all the threads that are waiting. We also used an 
-enumeration for the interrupt level and the current level for that thread. 
-These are done to hold the wait time to run in the background instead of the
-busy wait and for disabling interrupts.
+struct list waiting_queue;
+
+This struct decleration was used to implement the queue storing the sleeping
+threads. It is declared as a global list in the timer.c file.
+
+bool compare_wakeups(struct list_elem* first, struct list_elem* second)
+
+This function was added to order the waiting queue. It's used for inserting 
+threads into the queue to determine its placement.
+
+struct thread
+  {
+    /* Owned by thread.c. */
+    tid_t tid;                          /* Thread identifier. */
+    enum thread_status status;          /* Thread state. */
+    char name[16];                      /* Name (for debugging purposes). */
+    uint8_t *stack;                     /* Saved stack pointer. */
+    int priority;                       /* Priority. */
+    struct list_elem allelem;           /* List element for all threads list. */
+
+    /* Shared between thread.c and synch.c. */
+    struct list_elem elem;              /* List element. */
+
+    int64_t wakeup; // Used for sleep without busy wait
+
+#ifdef USERPROG
+    /* Owned by userprog/process.c. */
+    uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
+    unsigned magic;                     /* Detects stack overflow. */
+  };
+
+The wakeup variable was added to thread struct. It determines when
+the thread will wake up and helps with the ordering of the waiting queue.
+
+enum intr_level current_level = intr_disable(); 
+
+This was implemented in the timer_sleep() function for breifly disabling the
+interrupts. It is used very similarly to the implementation in thread yield.
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
-timer_sleep() still gets the interrupt level and starts the timer_ticks,
-but it then goes on to use the enum for the interrupt levels and store the
-wake up time in the thread structure. It then blocks the thread and disables
-the interrupt. The interrupt handler gets the thread in the waiting queue,
-if it is not time to wake up yet, nothing happens. Otherwise, it removes the
-thread from the list and unblocks it.
+The function timer_sleep() still checks the interrupt level and starts 
+the timer_ticks, but it then goes on to use the enum for the interrupt 
+levels and store the wake up time in the thread structure. It then 
+blocks the thread. During this time, the interrupts are disabled to
+these changes can be made quickly and atomically. The interrupt handler 
+will use the waiting queue to check if any threads need to be woken up.
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
 
-To minimize the time in the timer interrupt handler, we will keep the logic
-as simple and efficient as possible. One example would be to quickly get thread 
-information at initialization to shorten the delay. Using an if statement to break 
-out of the function also doesn't waste time if it is not ready to be removed.
+The interrupt handler takes the first thread in the waiting queue and checks 
+if it is its wake up time. It removes the thread from the list and unblocks 
+it at the threads wake up time. Otherwise, it will exit the handler. Other
+strategies were implemented like using an if statement to break out of 
+the function also doesn't waste time if it is not ready to be removed. 
+Since the waiting queue is also ordered, it only has to consider one element.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
-We avoid race conditions entirely by using a waiting queue 
-which will be achieved by putting each thread in the queue to sleep
-and re-enabled after the critical region is over.
+This is done by turning off the interrupts breifly to modify shared
+variables like the waiting queue itself. Once the thread is added and
+blocked, interrupts are turned back on.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
 We will be turning off the interrupts, which guarantees that the timer
-interrupt will not preempt the thread while modifying the variable.
+interrupt will not preempt the thread while modifying the variables
+to ensure correct values for the thread being added to the waiting
+queue.
 
 ---- RATIONALE ----
 
@@ -78,11 +117,13 @@ interrupt will not preempt the thread while modifying the variable.
 >> another design you considered?
 
 We chose this initial design because it avoids busy waiting and should 
-improve efficiency. The queue enables use to have necessary work done each
-tick and allows the timer interrupt to run quickly and safely.
-Being our first iteration, it could easily be improved.
-In theory, this design should meet the requirements, which is why we are
-pursuing it.
+improve efficiency. The queue enables us to have necessary work done each
+tick and allows the timer interrupt to run quickly and safely. The disabling of
+interrupts was also modeled after the thread yield function which was originally
+used in the busy waiting while loop. This helped us ensure this use was appropriate.
+Finally, we used a sorted list to order the wake ups rather than searching for the 
+first, or current, wake up time which is more efficient and might keep timers from
+missing a wake up.
 
 			 PRIORITY SCHEDULING
 			 ===================
