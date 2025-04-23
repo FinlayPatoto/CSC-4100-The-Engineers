@@ -12,14 +12,16 @@ Katie Swinea <keswinea42@tntech.edu>
 
 ---- PRELIMINARIES ----
 
-This is just the original submission for the design document.
-It will mostly have the outlines indicated by the >> symbol
-for the group's use and reference for each part of project and
-each part's sections. It will be filled out throughout the
-project as different parts are completed and implemented.
+This is the final submission for the design document. It covers all the
+implementations for all the tests including the advanced scheduler. We
+not the use of generative AI, which is allowed by the instructer as long
+as we did our own work and only used it for explanation and helping with
+small parts, like specific functions, of the project.
 
-No outside sources have been used so far. If any are used
-they will be added and cited here appropriately.
+The documentation was used extensively to determine the implementation.
+Chatgpt was also used to help debug, for example helping find he misuse
+of two similarly named variables. It was also used to help interperate
+expectations of the document.
 
 			     ALARM CLOCK
 			     ===========
@@ -239,6 +241,20 @@ outside of sections disabling interrupts.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+bool thread_mlfqs;
+This variable was added to indicate if mlfqs is on or off. External also defined
+in header.
+
+int load_avg = 0;
+This vairable was added and intialized for the system wide load average. External
+also defined in header.
+
+int recent_cpu;
+Variable for recent cpu to be stored for thread.
+
+int nice;
+Variable for nice value to be stored for thread.
+
 ---- ALGORITHMS ----
 
 >> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
@@ -246,26 +262,36 @@ outside of sections disabling interrupts.
 >> scheduling decision and the priority and recent_cpu values for each
 >> thread after each given number of timer ticks:
 
-timer  recent_cpu    priority   thread
-ticks   A   B   C   A   B   C   to run
------  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
+timer  recent_cpu           priority             thread
+ticks     A   B   C      A     B     C       to run
+-----   ---- ---- ----  ----  ----  ----    -------
+   0      0    0    0    63    61    59      A  
+   4      4    0    0    62    61    59      A  
+   8      8    0    0    61    61    59      A
+  12     12    0    0    60    61    59      B  
+  16     12    4    0    60    60    59      A  
+  20     16    4    0    59    60    59      B  
+  24     16    8    0    59    59    59      A
+  28     20    8    0    58    59    59      B  
+  32     20   12    4    58    58    59      C  
+  36     20   12    8    58    58    58      A
+
+Note ties, like when timer ticks is 8, were broken alphabetically.
 
 >> C3: Did any ambiguities in the scheduler specification make values
 >> in the table uncertain?  If so, what rule did you use to resolve
 >> them?  Does this match the behavior of your scheduler?
 
+As noted above, ties were broken alpahbetically because we assumed those 
+went in first. If a tie happens it is implemented as a first in first out
+queue.
+
 >> C4: How is the way you divided the cost of scheduling between code
 >> inside and outside interrupt context likely to affect performance?
+
+Most of the calculations using fixed point arithmetic is inside interrupt 
+context making context switching easier but puts more pressure on the 
+interrupt handler if the calculations are significant and large.
 
 ---- RATIONALE ----
 
@@ -274,12 +300,26 @@ ticks   A   B   C   A   B   C   to run
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
 
+As mentioned above, there is a lot of fixed point arithmetic being done in
+the interrupt. This helps with context switching but has the interrupts doing 
+a lot. Using fixed point macros make the code readable and increase usability.
+However, ties are broken based on FIFO which under certain conditions, might
+starve certain threads. If given more time, we would try to implement a round
+robin approach since it would be the most fair one.
+
 >> C6: The assignment explains arithmetic for fixed-point math in
 >> detail, but it leaves it open to you to implement it.  Why did you
 >> decide to implement it the way you did?  If you created an
 >> abstraction layer for fixed-point math, that is, an abstract data
 >> type and/or a set of functions or macros to manipulate fixed-point
 >> numbers, why did you do so?  If not, why not?
+
+We used abstract data because the equations for fixed point arithmetic were
+reused a lot. The equations also had to be used together for equations that
+multiple by a fraction and then add two multiplied results. That is a lot of
+equations being used and was much simpler to implement this way. In fact, we 
+originally tried to use the equations without in abstract data, but quickly
+found it was too much to keep track of.
 
 			   SURVEY QUESTIONS
 			   ================
@@ -293,14 +333,30 @@ the quarter.
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
+We honestly feel like all of the assignments were the right amount of difficulty.
+While Alarm might have been easier and Advnaced Scheduling harder compared to each
+other and the Priority, the combination of all three balanced each other out. If
+the difficulty was changed, the project could become much higher or lower depending
+on the changes.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+The Prioirty part of the assingment was very insightful. 
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
 
+Again, we think the project's difficulty is just right. The information given in
+class was very helpful and any issues could be addressed in office hours.
+
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
 
+We never went to the TA. Most questions we had were small and implementation
+specific.
+
 >> Any other comments?
+
+No other comments at this time.
