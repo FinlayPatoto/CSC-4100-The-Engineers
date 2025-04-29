@@ -14,7 +14,7 @@ Katie Swinea <keswinea42@tntech.edu>
 
 This is the final submission for the design document. It covers all the
 implementations for all the tests including the advanced scheduler. We
-not the use of generative AI, which is allowed by the instructer as long
+used generative AI, which is allowed by the instructer as long
 as we did our own work and only used it for explanation and helping with
 small parts, like specific functions, of the project.
 
